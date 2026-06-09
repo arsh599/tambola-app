@@ -618,7 +618,7 @@
             }
         }, 1000);
 
-        // Initialize on script load (not waiting for window load event)
+        // Initialize app
         function initializeApp() {
             try {
                 loadStates();
@@ -637,16 +637,11 @@
             }
         }
 
-        // Run with small delay to ensure DOM is fully ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => {
-                setTimeout(initializeApp, 10);
-            });
-        } else {
-            setTimeout(initializeApp, 10);
-        }
+        // Execute immediately - script is at end of body so DOM is ready
+        initializeApp();
 
-        // Also run on window load as backup
+        // Also run on load events as backup
+        document.addEventListener('DOMContentLoaded', initializeApp);
         window.addEventListener('load', initializeApp);
     </script>
 </body>
