@@ -552,8 +552,8 @@
             if (!grid) return;
             grid.innerHTML = '';
 
-            for (let col = 0; col < 9; col++) {
-                for (let row = 0; row < 3; row++) {
+            for (let row = 0; row < 3; row++) {
+                for (let col = 0; col < 9; col++) {
                     const number = gameState.ticketNumbers[col][row];
                     const cell = document.createElement('div');
 
