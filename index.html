@@ -456,57 +456,57 @@
             gameState.ticketNumbers = new Array(9).fill(null).map(() => new Array(3).fill(null));
             gameState.markedNumbers.clear();
 
-            // Create structure: decide which rows get numbers in each column
-            const structure = [];
-            for (let col = 0; col < 9; col++) {
-                const rand = Math.random();
-                let count = 1;
-                if (rand < 0.14) count = 2;
-                else if (rand < 0.015) count = 0;
+            // Create proper structure: ensure exactly 5 numbers per row
+            const structure = new Array(9).fill(null).map(() => []);
 
-                const rows = [];
-                while (rows.length < count) {
-                    const r = Math.floor(Math.random() * 3);
-                    if (!rows.includes(r)) rows.push(r);
+            // Step 1: Assign rows to columns (each column gets 1-2 numbers, distributed across rows)
+            let rowCounts = [0, 0, 0];
+            const targetPerRow = 5;
+
+            // Randomly assign rows to columns
+            for (let col = 0; col < 9; col++) {
+                const numInCol = Math.random() < 0.15 ? 2 : 1;
+                const availableRows = [0, 1, 2].filter(r => rowCounts[r] < targetPerRow);
+
+                if (availableRows.length === 0) continue;
+
+                for (let i = 0; i < numInCol && availableRows.length > 0; i++) {
+                    const rowIdx = Math.floor(Math.random() * availableRows.length);
+                    const row = availableRows[rowIdx];
+                    structure[col].push(row);
+                    rowCounts[row]++;
+                    availableRows.splice(rowIdx, 1);
                 }
-                structure.push(rows);
             }
 
-            // Adjust to ensure exactly 5 numbers per row
+            // Step 2: Balance rows to ensure exactly 5 per row
             for (let row = 0; row < 3; row++) {
-                let count = 0;
-                for (let col = 0; col < 9; col++) {
-                    if (structure[col].includes(row)) count++;
-                }
-
-                if (count < 5) {
-                    let needed = 5 - count;
-                    let attempts = 0;
-                    while (needed > 0 && attempts < 100) {
-                        const col = Math.floor(Math.random() * 9);
+                const need = targetPerRow - rowCounts[row];
+                if (need > 0) {
+                    // Find columns that can still accept this row
+                    for (let col = 0; col < 9 && need > 0; col++) {
                         if (!structure[col].includes(row) && structure[col].length < 2) {
                             structure[col].push(row);
-                            needed--;
+                            need--;
                         }
-                        attempts++;
                     }
                 }
             }
 
-            // Fill numbers into structure
+            // Step 3: Fill numbers into the structure (sorted within each column)
             for (let col = 0; col < 9; col++) {
-                const start = col * 10 + 1;
-                const end = col * 10 + 10;
-                const colNumbers = [];
+                if (structure[col].length === 0) continue;
 
-                for (let i = start; i <= end; i++) {
+                const start = col * 10 + 1;
+                const colNumbers = [];
+                for (let i = start; i < start + 10; i++) {
                     colNumbers.push(i);
                 }
 
                 colNumbers.sort(() => Math.random() - 0.5);
                 const selectedNumbers = colNumbers.slice(0, structure[col].length).sort((a, b) => a - b);
-
                 structure[col].sort((a, b) => a - b);
+
                 selectedNumbers.forEach((num, idx) => {
                     gameState.ticketNumbers[col][structure[col][idx]] = num;
                 });
