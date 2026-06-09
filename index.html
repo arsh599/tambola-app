@@ -262,6 +262,26 @@
             color: #333;
         }
 
+        .error-box {
+            background: #ffebee;
+            border-left: 4px solid #ff6b6b;
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            color: #c62828;
+            display: none;
+        }
+
+        .error-box.show {
+            display: block;
+        }
+
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
         .caller-grid-container {
             background: #f9f9f9;
             padding: 15px;
@@ -329,13 +349,14 @@
         <div class="header">
             <h1>🎰 Tambola</h1>
             <div class="mode-selector">
-                <button class="mode-btn active" onclick="switchMode('caller')">🎤 Caller</button>
-                <button class="mode-btn" onclick="switchMode('player')">🎫 Player</button>
+                <button class="mode-btn active" onclick="switchMode(event)">🎤 Caller</button>
+                <button class="mode-btn" onclick="switchMode(event)">🎫 Player</button>
             </div>
         </div>
 
         <!-- Caller Section -->
         <div id="caller-section" class="section active">
+            <div class="error-box" id="error-box"></div>
             <div class="info-box">
                 Share this link with players to join the game
             </div>
@@ -379,29 +400,35 @@
     </div>
 
     <script>
-        // Game State
         let gameState = {
             calledNumbers: new Set(),
             ticketNumbers: new Array(9).fill(null).map(() => new Array(3).fill(null)),
             markedNumbers: new Set()
         };
 
-        // Initialize
-        function init() {
-            generateTicket();
-            renderCallerGrid();
+        let syncInterval = null;
+
+        function showError(msg) {
+            const box = document.getElementById('error-box');
+            if (box) {
+                box.textContent = msg;
+                box.classList.add('show');
+                setTimeout(() => box.classList.remove('show'), 5000);
+            }
         }
 
-        // Mode switching
-        function switchMode(mode) {
-            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+        function switchMode(e) {
+            const btn = e.currentTarget;
+            const mode = btn.textContent.includes('Caller') ? 'caller' : 'player';
+
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
 
             document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
-            document.getElementById(mode + '-section').classList.add('active');
+            const section = document.getElementById(mode + '-section');
+            if (section) section.classList.add('active');
         }
 
-        // Caller functions
         function callNumber() {
             let available = [];
             for (let i = 1; i <= 90; i++) {
@@ -411,32 +438,40 @@
             }
 
             if (available.length === 0) {
-                alert('All numbers called! Game over.');
+                showError('All numbers called! Game over.');
                 return;
             }
 
             const number = available[Math.floor(Math.random() * available.length)];
             gameState.calledNumbers.add(number);
 
-            document.getElementById('display-number').textContent = number;
-            document.getElementById(`cell-${number}`).classList.add('called');
-            renderCallerGrid();
+            const displayEl = document.getElementById('display-number');
+            if (displayEl) displayEl.textContent = number;
 
-            // Save state
+            const cellEl = document.getElementById(`cell-${number}`);
+            if (cellEl) cellEl.classList.add('called');
+
+            renderCallerGrid();
             saveCallerState();
         }
 
         function resetGame() {
             if (confirm('Reset the game?')) {
                 gameState.calledNumbers.clear();
-                document.getElementById('display-number').textContent = '—';
+                const displayEl = document.getElementById('display-number');
+                if (displayEl) displayEl.textContent = '—';
                 renderCallerGrid();
-                localStorage.removeItem('callerState');
+                try {
+                    localStorage.removeItem('callerState');
+                } catch (e) {
+                    showError('Failed to clear game state');
+                }
             }
         }
 
         function renderCallerGrid() {
             const grid = document.getElementById('caller-grid');
+            if (!grid) return;
             grid.innerHTML = '';
 
             for (let i = 1; i <= 90; i++) {
@@ -451,39 +486,32 @@
             }
         }
 
-        // Player functions
         function generateTicket() {
-            gameState.ticketNumbers = new Array(9).fill(null).map(() => new Array(3).fill(null));
-            gameState.markedNumbers.clear();
+            try {
+                gameState.ticketNumbers = new Array(9).fill(null).map(() => new Array(3).fill(null));
+                gameState.markedNumbers.clear();
 
-            // Create proper structure: ensure exactly 5 numbers per row
-            const structure = new Array(9).fill(null).map(() => []);
+                const structure = new Array(9).fill(null).map(() => []);
+                let rowCounts = [0, 0, 0];
+                const targetPerRow = 5;
 
-            // Step 1: Assign rows to columns (each column gets 1-2 numbers, distributed across rows)
-            let rowCounts = [0, 0, 0];
-            const targetPerRow = 5;
+                for (let col = 0; col < 9; col++) {
+                    const numInCol = Math.random() < 0.15 ? 2 : 1;
+                    const availableRows = [0, 1, 2].filter(r => rowCounts[r] < targetPerRow);
 
-            // Randomly assign rows to columns
-            for (let col = 0; col < 9; col++) {
-                const numInCol = Math.random() < 0.15 ? 2 : 1;
-                const availableRows = [0, 1, 2].filter(r => rowCounts[r] < targetPerRow);
+                    if (availableRows.length === 0) continue;
 
-                if (availableRows.length === 0) continue;
-
-                for (let i = 0; i < numInCol && availableRows.length > 0; i++) {
-                    const rowIdx = Math.floor(Math.random() * availableRows.length);
-                    const row = availableRows[rowIdx];
-                    structure[col].push(row);
-                    rowCounts[row]++;
-                    availableRows.splice(rowIdx, 1);
+                    for (let i = 0; i < numInCol && availableRows.length > 0; i++) {
+                        const rowIdx = Math.floor(Math.random() * availableRows.length);
+                        const row = availableRows[rowIdx];
+                        structure[col].push(row);
+                        rowCounts[row]++;
+                        availableRows.splice(rowIdx, 1);
+                    }
                 }
-            }
 
-            // Step 2: Balance rows to ensure exactly 5 per row
-            for (let row = 0; row < 3; row++) {
-                const need = targetPerRow - rowCounts[row];
-                if (need > 0) {
-                    // Find columns that can still accept this row
+                for (let row = 0; row < 3; row++) {
+                    let need = targetPerRow - rowCounts[row];
                     for (let col = 0; col < 9 && need > 0; col++) {
                         if (!structure[col].includes(row) && structure[col].length < 2) {
                             structure[col].push(row);
@@ -491,34 +519,37 @@
                         }
                     }
                 }
-            }
 
-            // Step 3: Fill numbers into the structure (sorted within each column)
-            for (let col = 0; col < 9; col++) {
-                if (structure[col].length === 0) continue;
+                for (let col = 0; col < 9; col++) {
+                    if (structure[col].length === 0) continue;
 
-                const start = col * 10 + 1;
-                const colNumbers = [];
-                for (let i = start; i < start + 10; i++) {
-                    colNumbers.push(i);
+                    const start = col * 10 + 1;
+                    const colNumbers = [];
+                    for (let i = start; i < start + 10; i++) {
+                        colNumbers.push(i);
+                    }
+
+                    colNumbers.sort(() => Math.random() - 0.5);
+                    const selectedNumbers = colNumbers.slice(0, structure[col].length).sort((a, b) => a - b);
+                    structure[col].sort((a, b) => a - b);
+
+                    selectedNumbers.forEach((num, idx) => {
+                        gameState.ticketNumbers[col][structure[col][idx]] = num;
+                    });
                 }
 
-                colNumbers.sort(() => Math.random() - 0.5);
-                const selectedNumbers = colNumbers.slice(0, structure[col].length).sort((a, b) => a - b);
-                structure[col].sort((a, b) => a - b);
-
-                selectedNumbers.forEach((num, idx) => {
-                    gameState.ticketNumbers[col][structure[col][idx]] = num;
-                });
+                renderTicket();
+                updateStats();
+                savePlayerState();
+            } catch (e) {
+                showError('Failed to generate ticket');
+                console.error(e);
             }
-
-            renderTicket();
-            updateStats();
-            savePlayerState();
         }
 
         function renderTicket() {
             const grid = document.getElementById('ticket-grid');
+            if (!grid) return;
             grid.innerHTML = '';
 
             for (let col = 0; col < 9; col++) {
@@ -528,7 +559,6 @@
 
                     if (number === null) {
                         cell.className = 'ticket-cell empty';
-                        cell.textContent = '';
                     } else {
                         cell.className = 'ticket-cell';
                         if (gameState.markedNumbers.has(number) || gameState.calledNumbers.has(number)) {
@@ -536,7 +566,7 @@
                             gameState.markedNumbers.add(number);
                         }
                         cell.textContent = number;
-                        cell.onclick = () => toggleMark(number, cell);
+                        cell.addEventListener('click', () => toggleMark(number, cell));
                     }
 
                     grid.appendChild(cell);
@@ -564,85 +594,125 @@
         }
 
         function updateStats() {
-            document.getElementById('marked-count').textContent = gameState.markedNumbers.size;
+            const markedEl = document.getElementById('marked-count');
+            const totalEl = document.getElementById('total-count');
+            const totalNumbers = gameState.ticketNumbers.flat().filter(n => n !== null).length;
+
+            if (markedEl) markedEl.textContent = gameState.markedNumbers.size;
+            if (totalEl) totalEl.textContent = totalNumbers;
         }
 
-        // Persistence
         function saveCallerState() {
-            const state = {
-                calledNumbers: Array.from(gameState.calledNumbers),
-                lastNumber: parseInt(document.getElementById('display-number').textContent)
-            };
-            localStorage.setItem('callerState', JSON.stringify(state));
+            try {
+                const displayEl = document.getElementById('display-number');
+                const lastNum = displayEl ? parseInt(displayEl.textContent) : null;
+
+                if (!isNaN(lastNum)) {
+                    const state = {
+                        calledNumbers: Array.from(gameState.calledNumbers),
+                        lastNumber: lastNum
+                    };
+                    localStorage.setItem('callerState', JSON.stringify(state));
+                }
+            } catch (e) {
+                console.error('Failed to save caller state:', e);
+            }
         }
 
         function savePlayerState() {
-            const state = {
-                ticketNumbers: gameState.ticketNumbers,
-                markedNumbers: Array.from(gameState.markedNumbers)
-            };
-            localStorage.setItem('playerState', JSON.stringify(state));
+            try {
+                const state = {
+                    ticketNumbers: gameState.ticketNumbers,
+                    markedNumbers: Array.from(gameState.markedNumbers)
+                };
+                localStorage.setItem('playerState', JSON.stringify(state));
+            } catch (e) {
+                console.error('Failed to save player state:', e);
+            }
         }
 
         function loadStates() {
-            const callerState = localStorage.getItem('callerState');
-            if (callerState) {
-                const state = JSON.parse(callerState);
-                gameState.calledNumbers = new Set(state.calledNumbers);
-                if (state.lastNumber) {
-                    document.getElementById('display-number').textContent = state.lastNumber;
+            try {
+                const callerState = localStorage.getItem('callerState');
+                if (callerState) {
+                    const state = JSON.parse(callerState);
+                    if (state.calledNumbers && Array.isArray(state.calledNumbers)) {
+                        gameState.calledNumbers = new Set(state.calledNumbers);
+                    }
+                    if (!isNaN(state.lastNumber) && state.lastNumber) {
+                        const displayEl = document.getElementById('display-number');
+                        if (displayEl) displayEl.textContent = state.lastNumber;
+                    }
+                    renderCallerGrid();
                 }
-                renderCallerGrid();
+            } catch (e) {
+                console.error('Failed to load caller state:', e);
             }
 
-            const playerState = localStorage.getItem('playerState');
-            if (playerState) {
-                const state = JSON.parse(playerState);
-                gameState.ticketNumbers = state.ticketNumbers;
-                gameState.markedNumbers = new Set(state.markedNumbers);
-                renderTicket();
-                updateStats();
+            try {
+                const playerState = localStorage.getItem('playerState');
+                if (playerState) {
+                    const state = JSON.parse(playerState);
+                    if (state.ticketNumbers && Array.isArray(state.ticketNumbers)) {
+                        gameState.ticketNumbers = state.ticketNumbers;
+                    }
+                    if (state.markedNumbers && Array.isArray(state.markedNumbers)) {
+                        gameState.markedNumbers = new Set(state.markedNumbers);
+                    }
+                    renderTicket();
+                    updateStats();
+                }
+            } catch (e) {
+                console.error('Failed to load player state:', e);
             }
         }
 
-        // Sync marked numbers from called numbers
-        setInterval(() => {
-            let changed = false;
-            gameState.markedNumbers.forEach(num => {
-                if (gameState.calledNumbers.has(num)) {
-                    changed = true;
-                }
-            });
-            if (changed) {
-                renderTicket();
-            }
-        }, 1000);
+        function setupSync() {
+            if (syncInterval) clearInterval(syncInterval);
 
-        // Initialize app
+            syncInterval = setInterval(() => {
+                let changed = false;
+                gameState.markedNumbers.forEach(num => {
+                    if (gameState.calledNumbers.has(num)) {
+                        changed = true;
+                    }
+                });
+                if (changed) {
+                    renderTicket();
+                }
+            }, 1000);
+        }
+
         function initializeApp() {
             try {
                 loadStates();
 
-                // Generate ticket if empty
                 if (gameState.ticketNumbers.every(col => col.every(num => num === null))) {
                     generateTicket();
                 } else {
                     renderTicket();
                 }
 
-                // Always render caller grid
                 renderCallerGrid();
+                setupSync();
             } catch (e) {
-                console.error('Initialization error:', e);
+                showError('Failed to initialize app');
+                console.error(e);
             }
         }
 
-        // Execute immediately - script is at end of body so DOM is ready
-        initializeApp();
+        let initialized = false;
+        function init() {
+            if (initialized) return;
+            initialized = true;
+            initializeApp();
+        }
 
-        // Also run on load events as backup
-        document.addEventListener('DOMContentLoaded', initializeApp);
-        window.addEventListener('load', initializeApp);
+        window.addEventListener('beforeunload', () => {
+            if (syncInterval) clearInterval(syncInterval);
+        });
+
+        init();
     </script>
 </body>
 </html>
