@@ -621,9 +621,16 @@
         // Load on startup
         window.addEventListener('load', () => {
             loadStates();
+
+            // Generate ticket if empty
             if (gameState.ticketNumbers.every(col => col.every(num => num === null))) {
                 generateTicket();
+            } else {
+                renderTicket();
             }
+
+            // Always render caller grid
+            renderCallerGrid();
         });
     </script>
 </body>
