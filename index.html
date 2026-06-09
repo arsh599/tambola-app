@@ -349,12 +349,6 @@
             markedNumbers: new Set()
         };
 
-        // Initialize
-        function init() {
-            generateTicket();
-            renderCallerHistory();
-        }
-
         // Mode switching
         function switchMode(mode) {
             document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
@@ -383,8 +377,6 @@
 
             document.getElementById('display-number').textContent = number;
             renderCallerHistory();
-
-            // Save state
             saveCallerState();
         }
 
@@ -410,13 +402,12 @@
             });
         }
 
-        // Player functions
+        // Player functions - Proper Tambola ticket generation
         function generateTicket() {
-            // Create a 9x3 grid with numbers 1-90
             gameState.ticketNumbers = new Array(9).fill(null).map(() => new Array(3).fill(null));
             gameState.markedNumbers.clear();
 
-            // Distribute numbers: 1-10 in col 1, 11-20 in col 2, ..., 81-90 in col 9
+            // Fill columns: each column has 1-2 random numbers from its range
             for (let col = 0; col < 9; col++) {
                 const start = col * 10 + 1;
                 const end = col * 10 + 10;
@@ -426,11 +417,57 @@
                     colNumbers.push(i);
                 }
 
-                // Shuffle and pick 3
+                // Randomly decide 1 or 2 numbers per column
+                const count = Math.random() > 0.4 ? 1 : 2;
                 colNumbers.sort(() => Math.random() - 0.5);
 
+                // Place in random rows
+                const selectedNumbers = colNumbers.slice(0, count);
+                const rowIndices = [];
+                while (rowIndices.length < count) {
+                    const r = Math.floor(Math.random() * 3);
+                    if (!rowIndices.includes(r)) rowIndices.push(r);
+                }
+                rowIndices.sort();
+
+                selectedNumbers.forEach((num, idx) => {
+                    gameState.ticketNumbers[col][rowIndices[idx]] = num;
+                });
+            }
+
+            // Ensure exactly 15 numbers total
+            let count = 0;
+            for (let col = 0; col < 9; col++) {
                 for (let row = 0; row < 3; row++) {
-                    gameState.ticketNumbers[col][row] = colNumbers[row];
+                    if (gameState.ticketNumbers[col][row] !== null) count++;
+                }
+            }
+
+            // Fill remaining cells to reach 15 numbers
+            if (count < 15) {
+                let needed = 15 - count;
+                for (let col = 0; col < 9 && needed > 0; col++) {
+                    for (let row = 0; row < 3 && needed > 0; row++) {
+                        if (gameState.ticketNumbers[col][row] === null) {
+                            const start = col * 10 + 1;
+                            const end = col * 10 + 10;
+                            let num = Math.floor(Math.random() * (end - start + 1)) + start;
+
+                            // Check uniqueness in column
+                            let exists = false;
+                            for (let r = 0; r < 3; r++) {
+                                if (gameState.ticketNumbers[col][r] === num) {
+                                    exists = true;
+                                    break;
+                                }
+                            }
+
+                            if (!exists) {
+                                gameState.ticketNumbers[col][row] = num;
+                                needed--;
+                            }
+                        }
+                    }
                 }
             }
 
@@ -526,19 +563,6 @@
                 updateStats();
             }
         }
-
-        // Sync marked numbers from called numbers
-        setInterval(() => {
-            let changed = false;
-            gameState.markedNumbers.forEach(num => {
-                if (gameState.calledNumbers.has(num)) {
-                    changed = true;
-                }
-            });
-            if (changed) {
-                renderTicket();
-            }
-        }, 1000);
 
         // Load on startup
         window.addEventListener('load', () => {
