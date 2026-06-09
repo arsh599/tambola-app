@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tambola Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .mode-selector {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .mode-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .mode-btn:hover {
+            border-color: #667eea;
+        }
+
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        /* Caller Section */
+        .caller-display {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 20px;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .current-number {
+            font-size: 72px;
+            font-weight: bold;
+            margin: 20px 0;
+            font-family: monospace;
+        }
+
+        .caller-info {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+
+        .caller-history {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .history-title {
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 10px;
+            font-size: 12px;
+        }
+
+        .number-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+
+        .history-number {
+            background: #667eea;
+            color: white;
+            padding: 5px;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            flex: 1;
+            min-width: 100px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: scale(1.05);
+        }
+
+        .btn-primary:active {
+            transform: scale(0.95);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-danger {
+            background: #ff6b6b;
+            color: white;
+            min-width: auto;
+        }
+
+        .btn-danger:hover {
+            background: #ff5252;
+        }
+
+        /* Ticket Section */
+        .ticket-container {
+            margin-bottom: 20px;
+        }
+
+        .ticket-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 8px;
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .ticket-cell {
+            aspect-ratio: 1;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: white;
+            user-select: none;
+        }
+
+        .ticket-cell.empty {
+            background: #f0f0f0;
+            border-color: #f0f0f0;
+            cursor: default;
+        }
+
+        .ticket-cell.marked {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            font-weight: bold;
+        }
+
+        .ticket-cell:not(.empty):hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .player-stats {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .stat {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .stat-number {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 20px;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #667eea;
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            color: #333;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .current-number {
+                font-size: 56px;
+            }
+
+            .ticket-grid {
+                gap: 6px;
+                padding: 12px;
+            }
+
+            .ticket-cell {
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎰 Tambola</h1>
+            <div class="mode-selector">
+                <button class="mode-btn active" onclick="switchMode('caller')">🎤 Caller</button>
+                <button class="mode-btn" onclick="switchMode('player')">🎫 Player</button>
+            </div>
+        </div>
+
+        <!-- Caller Section -->
+        <div id="caller-section" class="section active">
+            <div class="caller-display">
+                <div class="caller-info">Current Number</div>
+                <div class="current-number" id="display-number">—</div>
+            </div>
+
+            <div class="info-box">
+                Share this link with players to join the game
+            </div>
+
+            <div class="caller-history">
+                <div class="history-title">Called Numbers</div>
+                <div class="number-grid" id="history-grid"></div>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn-primary" onclick="callNumber()">Call Number</button>
+                <button class="btn-secondary" onclick="resetGame()">Reset</button>
+            </div>
+        </div>
+
+        <!-- Player Section -->
+        <div id="player-section" class="section">
+            <div class="info-box">
+                Mark numbers as they are called to complete your ticket!
+            </div>
+
+            <div class="player-stats">
+                <div class="stat">Numbers Marked</div>
+                <div class="stat-number" id="marked-count">0</div>
+                <div class="stat" style="margin-top: 10px; font-size: 12px;">Total: <span id="total-count">15</span></div>
+            </div>
+
+            <div class="ticket-container">
+                <div class="ticket-grid" id="ticket-grid"></div>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn-primary" onclick="generateTicket()">New Ticket</button>
+                <button class="btn-secondary" onclick="resetTicket()">Clear Marks</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game State
+        let gameState = {
+            calledNumbers: new Set(),
+            ticketNumbers: new Array(9).fill(null).map(() => new Array(3).fill(null)),
+            markedNumbers: new Set()
+        };
+
+        // Initialize
+        function init() {
+            generateTicket();
+            renderCallerHistory();
+        }
+
+        // Mode switching
+        function switchMode(mode) {
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+            document.getElementById(mode + '-section').classList.add('active');
+        }
+
+        // Caller functions
+        function callNumber() {
+            let available = [];
+            for (let i = 1; i <= 90; i++) {
+                if (!gameState.calledNumbers.has(i)) {
+                    available.push(i);
+                }
+            }
+
+            if (available.length === 0) {
+                alert('All numbers called! Game over.');
+                return;
+            }
+
+            const number = available[Math.floor(Math.random() * available.length)];
+            gameState.calledNumbers.add(number);
+
+            document.getElementById('display-number').textContent = number;
+            renderCallerHistory();
+
+            // Save state
+            saveCallerState();
+        }
+
+        function resetGame() {
+            if (confirm('Reset the game?')) {
+                gameState.calledNumbers.clear();
+                document.getElementById('display-number').textContent = '—';
+                renderCallerHistory();
+                localStorage.removeItem('callerState');
+            }
+        }
+
+        function renderCallerHistory() {
+            const grid = document.getElementById('history-grid');
+            grid.innerHTML = '';
+
+            const sorted = Array.from(gameState.calledNumbers).sort((a, b) => a - b);
+            sorted.forEach(num => {
+                const div = document.createElement('div');
+                div.className = 'history-number';
+                div.textContent = num;
+                grid.appendChild(div);
+            });
+        }
+
+        // Player functions
+        function generateTicket() {
+            // Create a 9x3 grid with numbers 1-90
+            gameState.ticketNumbers = new Array(9).fill(null).map(() => new Array(3).fill(null));
+            gameState.markedNumbers.clear();
+
+            // Distribute numbers: 1-10 in col 1, 11-20 in col 2, ..., 81-90 in col 9
+            for (let col = 0; col < 9; col++) {
+                const start = col * 10 + 1;
+                const end = col * 10 + 10;
+                const colNumbers = [];
+
+                for (let i = start; i <= end; i++) {
+                    colNumbers.push(i);
+                }
+
+                // Shuffle and pick 3
+                colNumbers.sort(() => Math.random() - 0.5);
+
+                for (let row = 0; row < 3; row++) {
+                    gameState.ticketNumbers[col][row] = colNumbers[row];
+                }
+            }
+
+            renderTicket();
+            updateStats();
+            savePlayerState();
+        }
+
+        function renderTicket() {
+            const grid = document.getElementById('ticket-grid');
+            grid.innerHTML = '';
+
+            for (let col = 0; col < 9; col++) {
+                for (let row = 0; row < 3; row++) {
+                    const number = gameState.ticketNumbers[col][row];
+                    const cell = document.createElement('div');
+
+                    if (number === null) {
+                        cell.className = 'ticket-cell empty';
+                        cell.textContent = '';
+                    } else {
+                        cell.className = 'ticket-cell';
+                        if (gameState.markedNumbers.has(number) || gameState.calledNumbers.has(number)) {
+                            cell.classList.add('marked');
+                            gameState.markedNumbers.add(number);
+                        }
+                        cell.textContent = number;
+                        cell.onclick = () => toggleMark(number, cell);
+                    }
+
+                    grid.appendChild(cell);
+                }
+            }
+        }
+
+        function toggleMark(number, cell) {
+            if (gameState.markedNumbers.has(number)) {
+                gameState.markedNumbers.delete(number);
+                cell.classList.remove('marked');
+            } else {
+                gameState.markedNumbers.add(number);
+                cell.classList.add('marked');
+            }
+            updateStats();
+            savePlayerState();
+        }
+
+        function resetTicket() {
+            gameState.markedNumbers.clear();
+            renderTicket();
+            updateStats();
+            savePlayerState();
+        }
+
+        function updateStats() {
+            document.getElementById('marked-count').textContent = gameState.markedNumbers.size;
+        }
+
+        // Persistence
+        function saveCallerState() {
+            const state = {
+                calledNumbers: Array.from(gameState.calledNumbers),
+                lastNumber: parseInt(document.getElementById('display-number').textContent)
+            };
+            localStorage.setItem('callerState', JSON.stringify(state));
+        }
+
+        function savePlayerState() {
+            const state = {
+                ticketNumbers: gameState.ticketNumbers,
+                markedNumbers: Array.from(gameState.markedNumbers)
+            };
+            localStorage.setItem('playerState', JSON.stringify(state));
+        }
+
+        function loadStates() {
+            const callerState = localStorage.getItem('callerState');
+            if (callerState) {
+                const state = JSON.parse(callerState);
+                gameState.calledNumbers = new Set(state.calledNumbers);
+                if (state.lastNumber) {
+                    document.getElementById('display-number').textContent = state.lastNumber;
+                }
+                renderCallerHistory();
+            }
+
+            const playerState = localStorage.getItem('playerState');
+            if (playerState) {
+                const state = JSON.parse(playerState);
+                gameState.ticketNumbers = state.ticketNumbers;
+                gameState.markedNumbers = new Set(state.markedNumbers);
+                renderTicket();
+                updateStats();
+            }
+        }
+
+        // Sync marked numbers from called numbers
+        setInterval(() => {
+            let changed = false;
+            gameState.markedNumbers.forEach(num => {
+                if (gameState.calledNumbers.has(num)) {
+                    changed = true;
+                }
+            });
+            if (changed) {
+                renderTicket();
+            }
+        }, 1000);
+
+        // Load on startup
+        window.addEventListener('load', () => {
+            loadStates();
+            if (gameState.ticketNumbers.every(col => col.every(num => num === null))) {
+                generateTicket();
+            }
+        });
+    </script>
+</body>
+</html>
