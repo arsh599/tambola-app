@@ -402,12 +402,12 @@
             });
         }
 
-        // Player functions - Proper Tambola ticket generation
+        // Player functions - Realistic Tambola ticket
         function generateTicket() {
             gameState.ticketNumbers = new Array(9).fill(null).map(() => new Array(3).fill(null));
             gameState.markedNumbers.clear();
 
-            // Fill columns: each column has 1-2 random numbers from its range
+            // Realistic distribution: 85% single, 14% double, 1% empty
             for (let col = 0; col < 9; col++) {
                 const start = col * 10 + 1;
                 const end = col * 10 + 10;
@@ -417,43 +417,42 @@
                     colNumbers.push(i);
                 }
 
-                // Randomly decide 1 or 2 numbers per column
-                const count = Math.random() > 0.4 ? 1 : 2;
-                colNumbers.sort(() => Math.random() - 0.5);
+                const rand = Math.random();
+                let count = 1;
+                if (rand < 0.14) count = 2;
+                else if (rand < 0.015) count = 0;
 
-                // Place in random rows
+                colNumbers.sort(() => Math.random() - 0.5);
                 const selectedNumbers = colNumbers.slice(0, count);
+
                 const rowIndices = [];
                 while (rowIndices.length < count) {
                     const r = Math.floor(Math.random() * 3);
                     if (!rowIndices.includes(r)) rowIndices.push(r);
                 }
-                rowIndices.sort();
 
                 selectedNumbers.forEach((num, idx) => {
                     gameState.ticketNumbers[col][rowIndices[idx]] = num;
                 });
             }
 
-            // Ensure exactly 15 numbers total
-            let count = 0;
-            for (let col = 0; col < 9; col++) {
-                for (let row = 0; row < 3; row++) {
+            // Ensure exactly 5 numbers per row
+            for (let row = 0; row < 3; row++) {
+                let count = 0;
+                for (let col = 0; col < 9; col++) {
                     if (gameState.ticketNumbers[col][row] !== null) count++;
                 }
-            }
 
-            // Fill remaining cells to reach 15 numbers
-            if (count < 15) {
-                let needed = 15 - count;
-                for (let col = 0; col < 9 && needed > 0; col++) {
-                    for (let row = 0; row < 3 && needed > 0; row++) {
+                if (count < 5) {
+                    let needed = 5 - count;
+                    let attempts = 0;
+                    while (needed > 0 && attempts < 50) {
+                        const col = Math.floor(Math.random() * 9);
                         if (gameState.ticketNumbers[col][row] === null) {
                             const start = col * 10 + 1;
                             const end = col * 10 + 10;
-                            let num = Math.floor(Math.random() * (end - start + 1)) + start;
+                            const num = Math.floor(Math.random() * (end - start + 1)) + start;
 
-                            // Check uniqueness in column
                             let exists = false;
                             for (let r = 0; r < 3; r++) {
                                 if (gameState.ticketNumbers[col][r] === num) {
@@ -467,6 +466,7 @@
                                 needed--;
                             }
                         }
+                        attempts++;
                     }
                 }
             }
