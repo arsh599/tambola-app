@@ -620,21 +620,31 @@
 
         // Initialize on script load (not waiting for window load event)
         function initializeApp() {
-            loadStates();
+            try {
+                loadStates();
 
-            // Generate ticket if empty
-            if (gameState.ticketNumbers.every(col => col.every(num => num === null))) {
-                generateTicket();
-            } else {
-                renderTicket();
+                // Generate ticket if empty
+                if (gameState.ticketNumbers.every(col => col.every(num => num === null))) {
+                    generateTicket();
+                } else {
+                    renderTicket();
+                }
+
+                // Always render caller grid
+                renderCallerGrid();
+            } catch (e) {
+                console.error('Initialization error:', e);
             }
-
-            // Always render caller grid
-            renderCallerGrid();
         }
 
-        // Run immediately since script is at end of body
-        initializeApp();
+        // Run with small delay to ensure DOM is fully ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                setTimeout(initializeApp, 10);
+            });
+        } else {
+            setTimeout(initializeApp, 10);
+        }
 
         // Also run on window load as backup
         window.addEventListener('load', initializeApp);
