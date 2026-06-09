@@ -402,7 +402,7 @@
             });
         }
 
-        // Player functions - Realistic Tambola ticket
+        // Player functions
         function generateTicket() {
             gameState.ticketNumbers = new Array(9).fill(null).map(() => new Array(3).fill(null));
             gameState.markedNumbers.clear();
@@ -423,13 +423,14 @@
                 else if (rand < 0.015) count = 0;
 
                 colNumbers.sort(() => Math.random() - 0.5);
-                const selectedNumbers = colNumbers.slice(0, count);
+                const selectedNumbers = colNumbers.slice(0, count).sort((a, b) => a - b);
 
                 const rowIndices = [];
                 while (rowIndices.length < count) {
                     const r = Math.floor(Math.random() * 3);
                     if (!rowIndices.includes(r)) rowIndices.push(r);
                 }
+                rowIndices.sort();
 
                 selectedNumbers.forEach((num, idx) => {
                     gameState.ticketNumbers[col][rowIndices[idx]] = num;
