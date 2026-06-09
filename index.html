@@ -618,8 +618,8 @@
             }
         }, 1000);
 
-        // Load on startup
-        window.addEventListener('load', () => {
+        // Initialize on script load (not waiting for window load event)
+        function initializeApp() {
             loadStates();
 
             // Generate ticket if empty
@@ -631,7 +631,13 @@
 
             // Always render caller grid
             renderCallerGrid();
-        });
+        }
+
+        // Run immediately since script is at end of body
+        initializeApp();
+
+        // Also run on window load as backup
+        window.addEventListener('load', initializeApp);
     </script>
 </body>
 </html>
